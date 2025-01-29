@@ -42,8 +42,85 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const savedProgress = JSON.parse(localStorage.getItem('savedProgress')) || {};
-            const completedDays = new Set(JSON.parse(localStorage.getItem('completedDays')) || []);
+            const weeklyWorkouts = [
+                {
+                    day: "Upper Body Push",
+                    exercises: {
+                        "resistance-bands": [
+                            { name: "Resistance Band Push-Ups", sets: 4, reps: "12-15" },
+                            { name: "Resistance Band Shoulder Press", sets: 3, reps: "10-12" },
+                            { name: "Resistance Band Tricep Dips", sets: 3, reps: "12-15" },
+                            { name: "Resistance Band Chest Flys", sets: 3, reps: "10-12" },
+                            { name: "Plank-to-Push-Up", sets: 3, reps: "10" }
+                        ],
+                        "gym-equipment": [
+                            { name: "Barbell Bench Press", sets: 4, reps: "8-10" },
+                            { name: "Incline Dumbbell Press", sets: 3, reps: "10-12" },
+                            { name: "Overhead Shoulder Press", sets: 3, reps: "8-10" },
+                            { name: "Lateral Raises", sets: 3, reps: "12-15" },
+                            { name: "Dumbbell Tricep Extension", sets: 3, reps: "12-15" }
+                        ]
+                    }
+                },
+                {
+                    day: "Lower Body Strength",
+                    exercises: {
+                        "resistance-bands": [
+                            { name: "Resistance Band Squats", sets: 4, reps: "12-15" },
+                            { name: "Romanian Deadlifts", sets: 3, reps: "10-12" },
+                            { name: "Step-Out Lunges", sets: 3, reps: "12 per leg" },
+                            { name: "Glute Bridges", sets: 4, reps: "12-15" },
+                            { name: "Calf Raises", sets: 3, reps: "15-20" }
+                        ],
+                        "gym-equipment": [
+                            { name: "Barbell Back Squats", sets: 4, reps: "8-12" },
+                            { name: "Barbell Deadlifts", sets: 4, reps: "10-12" },
+                            { name: "Split Squats", sets: 3, reps: "10-12 per leg" },
+                            { name: "Dumbbell Glute Bridges", sets: 4, reps: "12-15" },
+                            { name: "Standing Calf Raises", sets: 3, reps: "15-20" }
+                        ]
+                    }
+                },
+                {
+                    day: "Active Recovery",
+                    exercises: {
+                        "resistance-bands": [],
+                        "gym-equipment": []
+                    }
+                },
+                {
+                    day: "Upper Body Pull",
+                    exercises: {
+                        "resistance-bands": [
+                            { name: "Band Rows", sets: 4, reps: "12-15" },
+                            { name: "Face Pulls", sets: 3, reps: "12-15" },
+                            { name: "Band Bicep Curls", sets: 3, reps: "10-12" },
+                            { name: "Pullover", sets: 3, reps: "10-12" },
+                            { name: "Superman Hold", sets: 3, reps: "Hold for 30 seconds" }
+                        ],
+                        "gym-equipment": [
+                            { name: "Barbell Rows", sets: 4, reps: "8-10" },
+                            { name: "Rear Delt Flys", sets: 3, reps: "12-15" },
+                            { name: "Barbell Curls", sets: 3, reps: "10-12" },
+                            { name: "Lat Pullover", sets: 3, reps: "10-12" },
+                            { name: "Superman Holds", sets: 3, reps: "Hold for 30 seconds" }
+                        ]
+                    }
+                }
+            ];
+
+            const dayData = {};
+            const savedProgress = JSON.parse(localStorage.getItem('savedProgress')) || {}; // Load from localStorage
+            const completedDays = new Set(JSON.parse(localStorage.getItem('completedDays')) || []); // Load from localStorage
+
+            for (let i = 1; i <= 30; i++) {
+                const workout = weeklyWorkouts[(i - 1) % weeklyWorkouts.length];
+                dayData[i] = {
+                    title: `Day ${i}: ${workout.day}`,
+                    exercises: workout.exercises
+                };
+            }
+
             let currentDay = 1;
             const dayTitle = document.getElementById("day-title");
             const exerciseOption = document.getElementById("exercise-option");
@@ -51,77 +128,34 @@
             const calendarDiv = document.getElementById("calendar");
 
             function updateDayContent() {
-                dayTitle.textContent = `Day ${currentDay}`;
-                displayExercises();
+                const dayInfo = dayData[currentDay];
+                dayTitle.textContent = dayInfo.title;
+                displayExercises(exerciseOption.value);
             }
 
-            function displayExercises() {
+            function displayExercises(option) {
+                const dayInfo = dayData[currentDay];
                 exerciseListDiv.innerHTML = '';
-                if (!savedProgress[currentDay]) {
-                    exerciseListDiv.innerHTML = '<p class="text-gray-500">No exercises found for this day.</p>';
+                if (!dayInfo.exercises[option].length) {
+                    exerciseListDiv.innerHTML = '<p class="text-gray-500">No exercises for this day.</p>';
                     return;
                 }
-
-                const exercises = savedProgress[currentDay];
-                exercises.forEach((exercise) => {
+                dayInfo.exercises[option].forEach((exercise, index) => {
                     const exerciseDiv = document.createElement("div");
                     exerciseDiv.classList.add("bg-gray-100", "p-4", "rounded-lg", "shadow-md", "hover:shadow-lg", "transition");
-                    let savedResults = exercise.sets.map((set, i) => `<p class='text-green-600 font-semibold'>Set ${i + 1}: ${set.reps} reps, ${set.kg} kg</p>`).join('');
-                    exerciseDiv.innerHTML = `<h3 class="text-lg font-semibold mb-2">${exercise.name}</h3>${savedResults}`;
+
+                    let savedResults = '';
+                    if (savedProgress[currentDay]?.[exercise.name]) {
+                        const { sets } = savedProgress[currentDay][exercise.name];
+                        savedResults = sets.map((set, i) => `<p class='text-green-600 font-semibold'>Set ${i + 1}: ${set.reps} reps, ${set.kg} kg</p>`).join('');
+                    }
+
+                    exerciseDiv.innerHTML = `<h3 class="text-lg font-semibold mb-2">${exercise.name}</h3>
+                        <p class="text-sm mb-4">Sets: ${exercise.sets} | Reps: ${exercise.reps}</p>
+                        ${savedResults}`;
+
                     exerciseListDiv.appendChild(exerciseDiv);
                 });
-            }
-
-            document.getElementById("save-progress").addEventListener("click", () => {
-                const inputs = exerciseListDiv.querySelectorAll("input, select");
-                if (!savedProgress[currentDay]) savedProgress[currentDay] = [];
-                inputs.forEach((input, index) => {
-                    const exerciseDiv = input.closest("div");
-                    const exerciseName = exerciseDiv.querySelector("h3").textContent;
-                    if (!savedProgress[currentDay].some(e => e.name === exerciseName)) {
-                        savedProgress[currentDay].push({ name: exerciseName, sets: [] });
-                    }
-                    const setIndex = Math.floor(index / 2);
-                    savedProgress[currentDay].find(e => e.name === exerciseName).sets[setIndex] = {
-                        reps: input.placeholder === "Reps" ? input.value : '',
-                        kg: input.tagName === "SELECT" ? input.value : ''
-                    };
-                });
-                localStorage.setItem('savedProgress', JSON.stringify(savedProgress));
-                completedDays.add(currentDay);
-                localStorage.setItem('completedDays', JSON.stringify(Array.from(completedDays)));
-                lockInputs();
-                renderCalendar();
-            });
-
-            document.getElementById("reset-progress").addEventListener("click", () => {
-                delete savedProgress[currentDay];
-                localStorage.setItem('savedProgress', JSON.stringify(savedProgress));
-                completedDays.delete(currentDay);
-                localStorage.setItem('completedDays', JSON.stringify(Array.from(completedDays)));
-                updateDayContent();
-                renderCalendar();
-            });
-
-            function lockInputs() {
-                exerciseListDiv.querySelectorAll("input, select").forEach(input => input.setAttribute("disabled", "true"));
-            }
-
-            function renderCalendar() {
-                calendarDiv.innerHTML = '';
-                for (let i = 1; i <= 30; i++) {
-                    const dayDiv = document.createElement("div");
-                    dayDiv.textContent = `Day ${i}`;
-                    dayDiv.classList.add("bg-gray-100", "p-3", "rounded-lg", "shadow", "hover:bg-blue-500", "hover:text-white", "transition", "text-center", "cursor-pointer");
-                    if (completedDays.has(i)) {
-                        dayDiv.classList.add("bg-green-500", "text-white");
-                    }
-                    dayDiv.addEventListener("click", () => {
-                        currentDay = i;
-                        updateDayContent();
-                    });
-                    calendarDiv.appendChild(dayDiv);
-                }
             }
 
             document.getElementById("previous-day").addEventListener("click", () => {
@@ -138,7 +172,6 @@
                 }
             });
 
-            // Initialize page content
             renderCalendar();
             updateDayContent();
         });
