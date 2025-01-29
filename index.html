@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30-Day Workout Tracker</title>
+    <!-- TailwindCSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-500 to-purple-500 text-white min-h-screen">
+    <header class="bg-gray-800 text-white py-4 shadow-md">
+        <h1 class="text-center text-3xl font-bold">30-Day Workout Tracker</h1>
+    </header>
+    <div class="container mx-auto mt-8 p-4 sm:p-6 bg-white text-gray-800 rounded-lg shadow-lg">
+        <!-- Navigation -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <button id="previous-day" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow mb-2 sm:mb-0">Previous Day</button>
+            <span id="day-title" class="text-xl font-semibold">Day 1: Upper Body Push</span>
+            <button id="next-day" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow">Next Day</button>
+        </div>
+
+        <!-- Exercise Options -->
+        <h2 class="text-2xl font-bold mb-4">Exercise Options</h2>
+        <select id="exercise-option" class="w-full border border-gray-300 rounded-lg py-2 px-4 mb-6">
+            <option value="resistance-bands">Resistance Bands</option>
+            <option value="gym-equipment">Gym Equipment</option>
+        </select>
+        <div id="exercise-list" class="grid grid-cols-1 sm:grid-cols-2 gap-6"></div>
+
+        <!-- Save and Reset Buttons -->
+        <div class="flex flex-col sm:flex-row justify-between gap-4">
+            <button id="save-progress" class="mt-6 w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded shadow">Save Progress</button>
+            <button id="reset-progress" class="mt-6 w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded shadow">Reset Day</button>
+        </div>
+
+        <!-- Calendar -->
+        <h2 class="text-2xl font-bold mt-8">Calendar</h2>
+        <div id="calendar" class="grid grid-cols-4 sm:grid-cols-7 gap-4 mt-4"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const savedProgress = JSON.parse(localStorage.getItem('savedProgress')) || {};
+            const completedDays = new Set(JSON.parse(localStorage.getItem('completedDays')) || []);
+            let currentDay = 1;
+            const dayTitle = document.getElementById("day-title");
+            const exerciseOption = document.getElementById("exercise-option");
+            const exerciseListDiv = document.getElementById("exercise-list");
+            const calendarDiv = document.getElementById("calendar");
+
+            function updateDayContent() {
+                dayTitle.textContent = `Day ${currentDay}`;
+                displayExercises();
+            }
+
+            function displayExercises() {
+                exerciseListDiv.innerHTML = '';
+                const exercises = savedProgress[currentDay] || [];
+                exercises.forEach((exercise, index) => {
+                    const exerciseDiv = document.createElement("div");
+                    exerciseDiv.classList.add("bg-gray-100", "p-4", "rounded-lg", "shadow-md", "hover:shadow-lg", "transition");
+                    let savedResults = exercise.sets.map((set, i) => `<p class='text-green-600 font-semibold'>Set ${i + 1}: ${set.reps} reps, ${set.kg} kg</p>`).join('');
+                    exerciseDiv.innerHTML = `<h3 class="text-lg font-semibold mb-2">${exercise.name}</h3>
+                        ${savedResults}`;
+                    exerciseListDiv.appendChild(exerciseDiv);
+                });
+            }
+
+            document.getElementById("save-progress").addEventListener("click", () => {
+                const inputs = exerciseListDiv.querySelectorAll("input, select");
+                if (!savedProgress[currentDay]) savedProgress[currentDay] = [];
+                inputs.forEach((input, index) => {
+                    const exerciseDiv = input.closest("div");
+                    const exerciseName = exerciseDiv.querySelector("h3").textContent;
+                    if (!savedProgress[currentDay].some(e => e.name === exerciseName)) {
+                        savedProgress[currentDay].push({ name: exerciseName, sets: [] });
+                    }
+                    const setIndex = Math.floor(index / 2);
+                    savedProgress[currentDay].find(e => e.name === exerciseName).sets[setIndex] = {
+                        reps: input.placeholder === "Reps" ? input.value : '',
+                        kg: input.tagName === "SELECT" ? input.value : ''
+                    };
+                });
+                localStorage.setItem('savedProgress', JSON.stringify(savedProgress));
+                completedDays.add(currentDay);
+                localStorage.setItem('completedDays', JSON.stringify(Array.from(completedDays)));
+                lockInputs();
+                renderCalendar();
+            });
+
+            document.getElementById("reset-progress").addEventListener("click", () => {
+                delete savedProgress[currentDay];
+                localStorage.setItem('savedProgress', JSON.stringify(savedProgress));
+                completedDays.delete(currentDay);
+                localStorage.setItem('completedDays', JSON.stringify(Array.from(completedDays)));
+                updateDayContent();
+                renderCalendar();
+            });
+
+            function lockInputs() {
+                exerciseListDiv.querySelectorAll("input, select").forEach(input => input.setAttribute("disabled", "true"));
+            }
+
+            function renderCalendar() {
+                calendarDiv.innerHTML = '';
+                for (let i = 1; i <= 30; i++) {
+                    const dayDiv = document.createElement("div");
+                    dayDiv.textContent = `Day ${i}`;
+                    dayDiv.classList.add("bg-gray-100", "p-3", "rounded-lg", "shadow", "hover:bg-blue-500", "hover:text-white", "transition", "text-center", "cursor-pointer");
+                    if (completedDays.has(i)) {
+                        dayDiv.classList.add("bg-green-500", "text-white");
+                    }
+                    dayDiv.addEventListener("click", () => {
+                        currentDay = i;
+                        updateDayContent();
+                    });
+                    calendarDiv.appendChild(dayDiv);
+                }
+            }
+
+            document.getElementById("previous-day").addEventListener("click", () => {
+                if (currentDay > 1) {
+                    currentDay--;
+                    updateDayContent();
+                }
+            });
+
+            document.getElementById("next-day").addEventListener("click", () => {
+                if (currentDay < 30) {
+                    currentDay++;
+                    updateDayContent();
+                }
+            });
+
+            updateDayContent();
+            renderCalendar();
+        });
+    </script>
+</body>
+</html>
