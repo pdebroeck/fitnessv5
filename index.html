@@ -57,13 +57,17 @@
 
             function displayExercises() {
                 exerciseListDiv.innerHTML = '';
-                const exercises = savedProgress[currentDay] || [];
-                exercises.forEach((exercise, index) => {
+                if (!savedProgress[currentDay]) {
+                    exerciseListDiv.innerHTML = '<p class="text-gray-500">No exercises found for this day.</p>';
+                    return;
+                }
+
+                const exercises = savedProgress[currentDay];
+                exercises.forEach((exercise) => {
                     const exerciseDiv = document.createElement("div");
                     exerciseDiv.classList.add("bg-gray-100", "p-4", "rounded-lg", "shadow-md", "hover:shadow-lg", "transition");
                     let savedResults = exercise.sets.map((set, i) => `<p class='text-green-600 font-semibold'>Set ${i + 1}: ${set.reps} reps, ${set.kg} kg</p>`).join('');
-                    exerciseDiv.innerHTML = `<h3 class="text-lg font-semibold mb-2">${exercise.name}</h3>
-                        ${savedResults}`;
+                    exerciseDiv.innerHTML = `<h3 class="text-lg font-semibold mb-2">${exercise.name}</h3>${savedResults}`;
                     exerciseListDiv.appendChild(exerciseDiv);
                 });
             }
@@ -134,8 +138,9 @@
                 }
             });
 
-            updateDayContent();
+            // Initialize page content
             renderCalendar();
+            updateDayContent();
         });
     </script>
 </body>
